@@ -15,8 +15,34 @@
 #'   \item{hard.cluster.labels}{A vector of integers indicating hard clutering labels, by assigning the node to the cluster with max membership}
 #' }
 #' 
-#' @export
+#' @import RSpectra, combinat, limSolve
 mixedSCORE <- function(A, K, verbose = F){
+    
+    # check package RSpectra installed, otherwise install it 
+    if (!'RSpectra' %in% installed.packages()){
+        install.packages('RSpectra', quiet = T)
+        if (!'RSpectra' %in% installed.packages()){
+            stop("Package: 'RSpectra' not found!")
+        }
+    }
+    
+    # check package combniat installed, otherwise install it 
+    if (!'combinat' %in% installed.packages()){
+        install.packages('combinat', quiet = T)
+        if (!'combinat' %in% installed.packages()){
+            stop("Package: 'combinat' not found!")
+        }
+    }
+    
+    # check package combniat installed, otherwise install it 
+    if (!'limSolve' %in% installed.packages()){
+        install.packages('limSolve', quiet = T)
+        if (!'limSolve' %in% installed.packages()){
+            stop("Package: 'limSolve' not found!")
+        }
+    }
+    
+    
     if(verbose){
         cat('Get ratios --------\n')
     }
@@ -69,25 +95,31 @@ mixedSCORE <- function(A, K, verbose = F){
 #' @export
 SCORE <- function(A, K, threshold = NULL){
     
-    # if not matrix
+    # check A is matrix
     if (!is.matrix(A)){
         A = as.matrix(A)
+        if (any( A < 0)){
+            stop('Entries of adjacency matrix A should be nonegative!')
+        }
     }
     
-    # check A is symmetric
-    if(sum(A != t(A))>0){
-        cat("Warning: adjacency matrix is not symmetric!\n")
+    # check symetry
+    if(any(A != t(A))){
+        stop("Aadjacency matrix A is not symmetric!")
     }
     
-    # check the connectivity of network
-    if(!igraph::is.connected(igraph::graph_from_adjacency_matrix(A, mode = 'undirected'))){
-        cat("Warning: network disconnected!\n")
+    # check connectivity of the network
+    if (!'igraph' %in% installed.packages()){
+        install.packages('igraph', quiet = T)
     }
+    if (!'igraph' %in% installed.packages()){
+        warnings('igraph package not found. Skip connectivity check.')
+    } else {
+        if(!igraph::is.connected(igraph::graph_from_adjacency_matrix(A, mode = 'undirected'))){
+            warnings("Network disconnected!")
+        }
+    } 
     
-    
-    if (class(A[1,1])=='integer'){
-        A = matrix(as.numeric(A), nrow = nrow(A)) # need numeric for eigs
-    }
     
     eig.out = RSpectra::eigs(A, k = K)
     ev = eig.out$vectors[,1:K]
@@ -226,7 +258,6 @@ getMaxDist <- function(centers, vertex.ind){
                              type = 2)
         return(out$solutionNorm)
     })
-    
     return(max(dist))
 }
 
